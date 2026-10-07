@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Trợ lý AI</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .chat {
+      width: 100%;
+      max-width: 600px;
+      height: 100vh;
+      max-height: 750px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #1677ff;
+      color: white;
+      padding: 18px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 18px;
+      overflow-y: auto;
+      background: #f7f8fa;
+    }
+
+    .message {
+      margin-bottom: 12px;
+      padding: 12px 15px;
+      border-radius: 15px;
+      max-width: 85%;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .user {
+      background: #1677ff;
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bot {
+      background: white;
+      color: #222;
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .input-area {
+      display: flex;
+      padding: 12px;
+      background: white;
+      border-top: 1px solid #ddd;
+      gap: 8px;
+    }
+
+    input {
+      flex: 1;
+      padding: 13px;
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    button {
+      border: none;
+      background: #1677ff;
+      color: white;
+      padding: 0 20px;
+      border-radius: 25px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+    }
+
+    @media (max-width: 600px) {
+      .chat {
+        max-height: none;
+      }
+
+      .header {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="chat">
+
+  <div class="header">
+    🤖 Trợ lý AI
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="message bot">
+      Xin chào! 👋 Tôi là trợ lý AI. Bạn muốn hỏi gì?
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input
+      id="input"
+      type="text"
+      placeholder="Nhập câu hỏi..."
+      autocomplete="off"
+    >
+
+    <button id="send">
+      Gửi
+    </button>
+  </div>
+
+</div>
+
+<script>
+  const input = document.getElementById("input");
+  const sendButton = document.getElementById("send");
+  const messages = document.getElementById("messages");
+
+  function addMessage(text, type) {
+    const div = document.createElement("div");
+
+    div.className = "message " + type;
+    div.textContent = text;
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    addMessage(text, "user");
+
+    input.value = "";
+    sendButton.disabled = true;
+    sendButton.textContent = "...";
+
+    const loading = document.createElement("div");
+    loading.className = "message bot";
+    loading.textContent = "Đang suy nghĩ...";
+    messages.appendChild(loading);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: text
+        })
+      });
+
+      const data = await response.json();
+
+      loading.remove();
+
+      if (!response.ok) {
+        addMessage(
+          data.error || "Có lỗi xảy ra.",
+          "bot"
+        );
+        return;
+      }
+
+      addMessage(
+        data.answer || "AI chưa có câu trả lời.",
+        "bot"
+      );
+
+    } catch (error) {
+      loading.remove();
+
+      addMessage(
+        "❌ Không thể kết nối đến máy chủ.",
+        "bot"
+      );
+    }
+
+    sendButton.disabled = false;
+    sendButton.textContent = "Gửi";
+    input.focus();
+  }
+
+  sendButton.addEventListener("click", sendMessage);
+
+  input.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      sendMessage();
+    }
+  });
+</script>
+
+</body>
+</html>
